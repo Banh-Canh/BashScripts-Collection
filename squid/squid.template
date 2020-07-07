@@ -1,10 +1,6 @@
 #PARAMETRE AUTHENTICATION
 #auth_param basic program /usr/lib/squid3/basic_ncsa_auth /etc/squid/mdp.txt
 
-
-
-
-
 #PARAMETRE ACL
 acl localnet src 0.0.0.1-0.255.255.255	# RFC 1122 "this" network (LAN)      COMMENCER ICI
 acl localnet src 10.0.0.0/8		# RFC 1918 local private network (LAN)
@@ -27,10 +23,7 @@ acl Safe_ports port 591		# filemaker
 acl Safe_ports port 777		# multiling http
 acl CONNECT method CONNECT												FINIR ICI
 
-
 #PARAMETRE HTTP_ACCESS
-
-
 
 http_access deny !Safe_ports !blacklist 				COMMENCER ICI
 http_access deny CONNECT !SSL_ports
