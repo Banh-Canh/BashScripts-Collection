@@ -3,154 +3,161 @@
 
 BASEDIR=$(dirname "$0")
 
+trap exitscript INT
+
+function exitscript()
+{
+	rm $BASEDIR/dhcpd.conf* 2> /dev/null
+	echo -e "\n------------------------------------------------\n"
+	echo "Good Bye !" 
+	echo -e "\n------------------------------------------------\n"
+	exit
+}
+
 # install dhcp
 
-apt install -y isc-dhcp-server
+while [ "$installyesno" != yes ] && [ "$installyesno" != no ]
+do
+	echo -e "\n------------------------------------------------\n"
+	read -p "Do you want to install or update ISC-DHCP-SERVER ? [yes] [no] " installyesno
+	echo -e "\n------------------------------------------------\n"
+done
+
+if [ "$installyesno" == yes ]
+then
+	apt install -y isc-dhcp-server
+	echo ""
+elif [ "$installyesno" == no ]
+then
+	echo -e "\n------------------------------------------------\n"
+	echo "ISC-DHCP-SERVER has not been installed or updated."
+	echo -e "\n------------------------------------------------\n"
+fi
 
 # backup config dhcp
 
 cp /etc/dhcp/dhcpd.conf /etc/dhcp/dhcpd.conf.old
 
-while [ "$configyesno" != oui ] && [ "$configyesno" != non ]
-  do
-	read -p "Souhaitez-vous configurer le serveur dhcp [oui ou non] : " configyesno
-  done
+while [ "$configyesno" != yes ] && [ "$configyesno" != no ]
+do
+	read -p "Do you want to configure your DHCP server ? [yes] [no] " configyesno
+done
 
-if [ "$configyesno" == oui ]
+if [ "$configyesno" == yes ]
 then
-
+	
 # Configure dhcp
 
-  while [ 1 ]
-  do
+	echo -e "#GENERAL\n\n" > $BASEDIR/dhcpd.conf_general.temp
+	echo -e "#RANGE\n\n" > $BASEDIR/dhcpd.conf_range.temp
+	echo -e "#IP RESERVATION\n\n" > $BASEDIR/dhcpd.conf_ipreserv.temp
 
-  while [ "$configpart" != general ] && [ "$configpart" != range ] && [ "$configpart" != reservation ] && [ "$configpart" != showconfig ] && [ "$configpart" != saveconfig ] && [ "$configpart" != exitconfig ]
-  do
-    echo -e "\n------------------------------------------------\n"
-    echo "[general] [range] [reservation] [showconfig] [saveconfig] [exitconfig]"
-	echo -e "\n------------------------------------------------\n"
-	read -p "Quel partie souhaitez-vous configurer ? " configpart
-	echo -e "\n------------------------------------------------\n"
-  done
+	while [ 1 ]
+	do
+
+		echo -e "\n------------------------------------------------\n"
+		echo "[general] [range] [reservation] [showconfigtoapply] [showcurrentconfig] [saveconfig] [exitconfig]"
+		echo -e "\n------------------------------------------------\n"
+		read -p "What do you want to configure ? " configpart
+		echo -e "\n------------------------------------------------\n"
   
-
-   
-  case $configpart in
+		case $configpart in
   
-    general )
+			general )
 
-	echo -e "#PARAMETRE GENERAUX\n\n" > $BASEDIR/dhcpd.conf_general.temp
-	
-	read -p "Entrez le nom du domaine [nom]: " domainname
-	read -p "Entrez les DNS [IP, IP2] : " dnsip
-	echo -e "option domain-name "\"$domainname"\";\noption domain-name-servers $dnsip;\ndefault-lease-time 600;\nmax-lease-time 7200;\nddns-update-style none;\nauthoritative;\n\n" >> $BASEDIR/dhcpd.conf_general.temp
-  
-    configpart=
-	
-    ;;
-  
-##########################################################
+				read -p "Enter the domain name [name]: " domainname
+				read -p "Enter the domain name server address [ex: 8.8.8.8, 8.8.4.4, ...] : " dnsip
+				echo -e "option domain-name "\"$domainname"\";\noption domain-name-servers $dnsip;\ndefault-lease-time 600;\nmax-lease-time 7200;\nddns-update-style none;\nauthoritative;\n\n" >> $BASEDIR/dhcpd.conf_general.temp
+				configpart=
+			;;
+	  
 
-    range )
+			range )
 
-	echo -e "#PARAMETRE RANGE\n\n" > $BASEDIR/dhcpd.conf_range.temp
-	
-		while [ 1 ]
-	      do
-		  read -p "Souhaitez-vous ajouter une range ? [oui ou non] " addrange
-		  case $addrange in	    
+				while [ 1 ]
+				do
+					read -p "Do you want to add an IP range ? [yes] [no] " addrange
+					case $addrange in	    
+					
+						yes )
+							echo -e "\n------------------------------------------------\n"
+							read -p "Enter the subnet's address [ex: 192.168.0.0] : " ipsubnet
+							read -p "Enter the net's mask [ex: 255.255.255.0] : " ipnetmask
+							read -p "Enter the subnet ip's range [ex: 192.168.0.10 192.168.0.100] : " rangeip
+							read -p "Enter the gateway [ex: 192.168.0.1] : " gatewayip
+							read -p "Enter the broadcast address [ex: 192.168.0.255] : " ipbroadcast
+							read -p "Enter the subnet's mask [ex: 255.255.255.0] : " ipsubnetmask
+							echo -e "subnet $ipsubnet netmask $ipnetmask {\n  range $rangeip;\n  option routers $gatewayip;\n  option broadcast-address $ipbroadcast;\n  option subnet-mask $ipsubnetmask;\n}\n\n" >> $BASEDIR/dhcpd.conf_range.temp
+							echo -e "\n------------------------------------------------\n"
+						;;
+					
+						no )
+							break
+						;;
+					esac	
+				done
+				configpart=	  
+			;;
+		
+			reservation )
 			
-			oui )
-			    echo -e "\n------------------------------------------------\n"
-				read -p "Entrez l'ip du sous-réseau [ex: 192.168.0.0] : " ipsubnet
-				read -p "Entrez le masque du réseau [ex: 255.255.255.0] : " ipnetmask
-				read -p "Entrez la range d'IP [IP IP2] : " rangeip
-				read -p "Entrez l'adresse de la passerelle [IP] : " gatewayip
-				read -p "Entrez l'adresse broadcast [IP] : " ipbroadcast
-				read -p "Entrez le masque du sous-réseau [ex: 255.255.255.0] : " ipsubnetmask
-				echo -e "subnet $ipsubnet netmask $ipnetmask {\n  range $rangeip;\n  option routers $gatewayip;\n  option broadcast-address $ipbroadcast;\n  option subnet-mask $ipsubnetmask;\n}\n\n" >> $BASEDIR/dhcpd.conf_range.temp
-				echo -e "\n------------------------------------------------\n"
+			while [ "$reserveripyesno" != no ]
+			do
+				while [ "$reserveripyesno" != yes ] && [ "$reserveripyesno" != no ]
+				do
+					read -p "Do you want to continue and reserve an IP [yes] [non] ? " reserveripyesno
+				done
+
+				if [ "$reserveripyesno" == yes ]
+				then
+					echo -e "\n------------------------------------------------\n"
+					read -p "Enter the host's name [ex: cli-ubuntu] : " namehost
+					read -p "Enter the host's mac address [ex: 08:00:27:38:f9:37] : " macaddress
+					read -p "Enter the reserved ip address [ex: 192.168.0.50] : " reservedip
+					echo -e "\n------------------------------------------------\n"
+					reserveripyesno=
+					echo -e "host $namehost {\n  hardware ethernet $macaddress;\n  fixed-address $reservedip;\n}\n" >> $BASEDIR/dhcpd.conf_ipreserv.temp
+				fi
+			done
+			configpart= 
 			;;
 			
-			non )
-			break;;
-		  esac	
-		  done
+			showcurrentconfig )	
+				echo -e "\n----------- CURRENT CONFIG -------------------------------------\n"
+				cat /etc/dhcp/dhcpd.conf
+				echo -e "\n----------- CURRENT CONFIG -------------------------------------\n"
+				configpart=		
+			;;
 
-	  configpart=
-	  
-	  ;;
-
-############################################################
+			showconfigtoapply )	
+				echo -e "\n----------- CONFIG TO APPLY -------------------------------------\n"
+				cat $BASEDIR/dhcpd.conf_general.temp > $BASEDIR/dhcpd.conf.temp && cat $BASEDIR/dhcpd.conf_range.temp >> $BASEDIR/dhcpd.conf.temp && cat $BASEDIR/dhcpd.conf_ipreserv.temp >> $BASEDIR/dhcpd.conf.temp 2> /dev/null
+				cat $BASEDIR/dhcpd.conf.temp
+				echo -e "\n----------- CONFIG TO APPLY -------------------------------------\n"
+				configpart=		
+			;;
+			
+			saveconfig )
+				cp $BASEDIR/dhcpd.conf.temp /etc/dhcp/dhcpd.conf && rm $BASEDIR/dhcpd.conf.temp
+				systemctl restart isc-dhcp-server
+				systemctl status isc-dhcp-server
+				echo -e "\n------------------------------------------------\n"
+				echo "Change saved !"
+				echo -e "\n------------------------------------------------\n"
+				configpart=
+			;;
+		  
+			exitconfig )
+			
+				exitscript
+				break
+			;;
+		esac
+	done
 	
-	reservation )
-	
-	echo -e "#RESERVATION IPs\n\n" > $BASEDIR/dhcpd.conf_ipreserv.temp
-
-	while [ "$reserveripyesno" != non ]
-	  do
-		while [ "$reserveripyesno" != oui ] && [ "$reserveripyesno" != non ]
-		  do
-			read -p "Souhaitez-vous continuer et réserver une IP [oui ou non] ? " reserveripyesno
-		  done
-
-		if [ "$reserveripyesno" == oui ]
-		then
-		  echo -e "\n------------------------------------------------\n"
-		  read -p "Indiquez un nom d'hôte [ex: cli-ubuntu] " namehost
-		  read -p "Indiquez son adresse MAC [ex: 08:00:27:38:f9:37] " macaddress
-		  read -p "Indiquez l'adresse IP à réserver [IP] " reservedip
-		  echo -e "\n------------------------------------------------\n"
-		  reserveripyesno=
-		  echo -e "host $namehost {\n  hardware ethernet $macaddress;\n  fixed-address $reservedip;\n}\n" >> $BASEDIR/dhcpd.conf_ipreserv.temp
-		fi
-	  done
-	  configpart=
-	  
-	;;
-	
-##############################################################
-
-    showconfig )
-	
-		echo -e "\n------------------------------------------------\n"
-		cat $BASEDIR/dhcpd.conf_general.temp > $BASEDIR/dhcpd.conf.temp && cat $BASEDIR/dhcpd.conf_range.temp >> $BASEDIR/dhcpd.conf.temp && cat $BASEDIR/dhcpd.conf_ipreserv.temp >> $BASEDIR/dhcpd.conf.temp
-		cat $BASEDIR/dhcpd.conf.temp
-		echo -e "\n------------------------------------------------\n"
-		configpart=
-		
-	;;
-		
-##############################################################
-    
-	saveconfig )
-	
-	  cp $BASEDIR/dhcpd.conf.temp /etc/dhcp/dhcpd.conf && rm $BASEDIR/dhcpd.conf.temp
-	  systemctl restart isc-dhcp-server
-	  systemctl status isc-dhcp-server
-	  echo "Changements sauvegardés !"
-	  configpart=
-	  
-	  ;;
-	  
-#############################################################
-	  
-	exitconfig )
-	
-	  if [ -f "$BASEDIR/dhcpd.conf.temp" ]
-	  then
-	    rm $BASEDIR/dhcpd.conf.temp
-	  fi
-	  echo "Au revoir !" 
-	
-	break;;
-
-###########################################################
-	
-  esac
-  done
-  
-elif [ "$configyesno" == non ]
+elif [ "$configyesno" == no ]
 then
-	echo "DHCP installé mais non configuré (par défaut)"
+	echo -e "\n------------------------------------------------\n"
+	echo "ISC-DHCP-SERVER has not been configured."
+	echo -e "\n------------------------------------------------\n"
 fi

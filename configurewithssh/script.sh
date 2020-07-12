@@ -2,6 +2,17 @@
 
 BASEDIR=$(dirname "$0")
 
+function exitscript()
+{
+	rm $BASEDIR/result* 2> /dev/null
+	echo -e "\n------------------------------------------------\n"
+	echo "Good Bye !" 
+	echo -e "\n------------------------------------------------\n"
+	exit
+}
+
+trap exitscript INT
+
 apt install sshpass -y
 
 ####################
@@ -12,48 +23,58 @@ ipmax=5
 
 #trap '' INT
 
-read -p "Entrez le nom d'user présent sur toutes les machines : " user
-read -p "Quel est le mot de passe SU de toutes vos machines du réseaux ? " passwdmachineone
+echo ""
+echo "The network's address must be 192.168.0.0"
+read -p "Enter an user that exist in all of the network's machines : " user
+read -sp "Super User Password : " passwdmachineone
 
 while [ 1 ]
 do
 
 	echo -e "\n------------------------------------------------\n"
-	echo -e "Range d'IP des postes à configurer : 192.168.0.$ipmin - 192.168.0.$ipmax\n "
+	echo -e "IP ranges of affected machines : 192.168.0.$ipmin - 192.168.0.$ipmax\n "
 	echo "[TimeSync] [FileSearch] [changeIPrange] [exitconfig]"
 	echo -e "\n------------------------------------------------\n"
-	read -p "Quel partie souhaitez-vous configurer ? " configpart
+	read -p "What do you want to configure ? " configpart
 	echo -e "\n------------------------------------------------\n"
 
 	case $configpart in
 	
         changeIPrange )
 		
-			read -p "Entrez la première IP de la range : 192.168.0." ipmin
-			read -p "Entrez la dernière IP de la range : 192.168.0." ipmax
+			read -p "Enter the first IP of the range : 192.168.0." ipmin
+			read -p "Enter the last IP of the range : 192.168.0." ipmax
 			
 		;;
 		
 		TimeSync )
 			
-			echo -e "\nLaisser vide pour activer la synchronisation avec le réseau internet.\n"
-			read -p "Entrez la date à appliquer à l'ensemble des machines [YYYY-MM-DD] : " dateday
-			read -p "Entrez l'heure à appliquer à l'ensemble des machines [HH:MM:SS] : " datehour
+			echo -e "\nLeave empty to sync the date with the internet network.\n"
+			read -p "Date [YYYY-MM-DD] : " dateday
+			read -p "Time [HH:MM:SS] : " datehour
 					
 			for ipend in $( eval echo {$ipmin..$ipmax} )
 			do
 				ip="192.168.0.$ipend"
-				ping $ip -c 1 -W 1
+				ping $ip -c 1 -W 1 2>&1> /dev/null
 				if [ "$?" = 0 ]
 				then
-					if [ -z "$dateday" ] || [ -z "$datehour" ]
+					sshpass -p "$passwdmachineone" ssh -qo StrictHostKeyChecking=no $user@$ip exit
+					if [ "$?" = 0 ]
 					then
-						sshpass -p "$passwdmachineone" ssh -o StrictHostKeyChecking=no $user@$ip "echo $passwdmachineone | sudo -S timedatectl set-ntp true"
+						if [ -z "$dateday" ] || [ -z "$datehour" ]
+						then
+							sshpass -p "$passwdmachineone" ssh -o StrictHostKeyChecking=no $user@$ip "echo $passwdmachineone | sudo -S timedatectl set-ntp true" > /dev/null 2>&1
+						else
+							sshpass -p "$passwdmachineone" ssh -o StrictHostKeyChecking=no $user@$ip "echo $passwdmachineone | sudo -S timedatectl set-ntp false" > /dev/null 2>&1
+							sshpass -p "$passwdmachineone" ssh -o StrictHostKeyChecking=no $user@$ip "echo $passwdmachineone | sudo -S timedatectl set-time $dateday" > /dev/null 2>&1
+							sshpass -p "$passwdmachineone" ssh -o StrictHostKeyChecking=no $user@$ip "echo $passwdmachineone | sudo -S timedatectl set-time $datehour" > /dev/null 2>&1
+						fi
 					else
-						sshpass -p "$passwdmachineone" ssh -o StrictHostKeyChecking=no $user@$ip "echo $passwdmachineone | sudo -S timedatectl set-ntp false"
-						sshpass -p "$passwdmachineone" ssh -o StrictHostKeyChecking=no $user@$ip "echo $passwdmachineone | sudo -S timedatectl set-time $dateday"
-						sshpass -p "$passwdmachineone" ssh -o StrictHostKeyChecking=no $user@$ip "echo $passwdmachineone | sudo -S timedatectl set-time $datehour"
-					fi				
+						echo -e "\n------------------------------------------------"
+						echo "Can't connect with SSH to $ip"
+						echo -e "------------------------------------------------\n"
+					fi
 				fi
 			done
 		
@@ -61,37 +82,43 @@ do
 	
 		FileSearch )
 	
-			read -p "Sur quels dossiers souhaitez vous lancer la recherche inter-ordinateurs ? " paths
-			read -p "Quel est le nom du fichier recherché ? " name
+			read -p "Path to the folder to start the search from : " paths
+			read -p "Name of the file to look for [ex: *auth.log]: " name
+			echo ""
 		
 			echo -e "######## RESULT #############\n\n" > $BASEDIR/result.txt
-
-			echo -e "\n### This PC ###\n" >> $BASEDIR/result.txt
-			find $paths -name $name >> $BASEDIR/result.txt
 
 			for ipend in $( eval echo {$ipmin..$ipmax} )
 			do
 				ip="192.168.0.$ipend"
-				ping $ip -c 1 -W 1
+				ping $ip -c 1 -W 1 2>&1> /dev/null
 				if [ "$?" = 0 ]
 				then
-					sshpass -p "$passwdmachineone" ssh -o StrictHostKeyChecking=no $user@$ip "echo $passwdmachineone | sudo -S find $paths -name $name > /home/$user/result.txt"
-					sshpass -p "$passwdmachineone" scp -o StrictHostKeyChecking=no $user@$ip:/home/$user/result.txt $BASEDIR/result$ip.txt
-					echo -e "\n### $ip ###\n" >> $BASEDIR/result.txt
-					cat $BASEDIR/result$ip.txt >> $BASEDIR/result.txt
-					sshpass -p "$passwdmachineone" ssh -o StrictHostKeyChecking=no $user@$ip "rm /home/$user/result*.txt"
+					sshpass -p "$passwdmachineone" ssh -qo StrictHostKeyChecking=no $user@$ip exit
+					if [ "$?" = 0 ]
+					then
+						sshpass -p "$passwdmachineone" ssh -o StrictHostKeyChecking=no $user@$ip "echo $passwdmachineone | sudo -S find $paths -name $name > /home/$user/result.txt" > /dev/null 2>&1
+						sshpass -p "$passwdmachineone" scp -o StrictHostKeyChecking=no $user@$ip:/home/$user/result.txt $BASEDIR/result$ip.txt
+						echo -e "\n### $ip ###\n" >> $BASEDIR/result.txt
+						cat $BASEDIR/result$ip.txt >> $BASEDIR/result.txt 
+						sshpass -p "$passwdmachineone" ssh -o StrictHostKeyChecking=no $user@$ip "rm /home/$user/result*.txt 2> /dev/null"
+					else
+						echo -e "\n------------------------------------------------"
+						echo "Can't connect with SSH to $ip"
+						echo -e "------------------------------------------------\n"
+					fi
 				fi
 			done
 
 			cat $BASEDIR/result.txt
-			rm $BASEDIR/result*.txt
+			rm $BASEDIR/result*.txt 2> /dev/null
 		;;
 		
 		exitconfig )
 	
-			echo "Au revoir !" 
-	
-		break;;
+			exitscript 
+			break
+		;;
 	
 	esac
 done

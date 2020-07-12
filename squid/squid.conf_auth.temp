@@ -1,1 +1,0 @@
-auth_param basic program /usr/lib/squid3/basic_ncsa_auth /home/victor/pwd/password
