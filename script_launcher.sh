@@ -3,23 +3,23 @@
 BASEDIR=$(dirname "$0")
 listscripts=`ls -d $BASEDIR/*/`
 
-echo -e "\nListe des scripts disponibles:\n\n$listscripts \n"
+echo -e "\nAvailable scripts :\n\n$listscripts \n"
 
 while [ "$readorrun" != edit ] && [ "$readorrun" != run ]
 do
-  read -p "Souhaitez-vous editer [edit] ou lancer [run] un script ? " readorrun
+  read -p "Do you want to edit [edit] or run [run] a script ? " readorrun
 done
 
 if [ "$readorrun" == edit ]
 then
 
-  read -p "Entrez le nom du script à éditer : " script
+  read -p "Enter the script's name to edit : " script
   nano $BASEDIR/$script/script.sh
 
 elif [ "$readorrun" == run ]
 then
   command=
-  read -p "Entrez le nom du script à lancer : " runscript
+  read -p "Enter the script's name to run : " runscript
   $BASEDIR/$runscript/script.sh
   
 fi

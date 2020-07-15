@@ -32,7 +32,7 @@ while [ 1 ]
 do
 
 	echo -e "\n------------------------------------------------\n"
-	echo -e "IP ranges of affected machines : 192.168.0.$ipmin - 192.168.0.$ipmax\n "
+	echo -e "IP range of affected machines : 192.168.0.$ipmin - 192.168.0.$ipmax\n "
 	echo "[TimeSync] [FileSearch] [changeIPrange] [exitconfig]"
 	echo -e "\n------------------------------------------------\n"
 	read -p "What do you want to configure ? " configpart
