@@ -1,5 +1,9 @@
 # BashScripts-Collection
 
+## Requirements
+
+ - Ubuntu 20.04 Focal
+
 ## This is a small collection of scripts. It includes 4 scripts:
 
  - Configurewithssh: A script I made with the intent to run commands & scripts to configure and interact (through ssh) with multiple servers/computers on the network. For now it allows to search and see if a file exists in any of the terminals on the network or on the specified IP range. It requires a sudoer that exists and has the same password on all terminals (far from ideal, I know).
