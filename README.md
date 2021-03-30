@@ -11,4 +11,11 @@
  - SQUID (with basic auth apache2-util), text-based interface
  - NETPLAN: Scripts I made that allows the user to install and configure those services without the need to go through a text editor.
 
-It includes a launcher that allows a listing of the availables scripts. To add new script just add a new folder with the script inside renamed script.sh. The configurations's script follow steps and procedures I learnt while installing it manually. Some configurations might be missing but it should not be too hard to implement them. See more on Github... 
+It includes a launcher that allows a listing of the availables scripts. To add new script just add a new folder with the script inside renamed script.sh. The configurations's script follow steps and procedures I learnt while installing it manually. Some configurations might be missing.
+
+## Adding new scripts
+
+- Create a new folder with the name of your script
+- Place your script named "script.sh" inside it
+- Verify execution rights (chmod +x on any script you wanna use)
+- Some scripts might need super-user
